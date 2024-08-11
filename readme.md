@@ -21,11 +21,11 @@ Steps to use:
 5) Now in the dir to work with ansible, create inventory file
 
     Eg:
-    [clients]
-    client1 ansible_host=<pip of client>
+    - [clients]
+    - client1 ansible_host=<pip of client>
 
-    [controller]
-    controller ansible_host=<pip of controller>
+    - [controller]
+    - controller ansible_host=<pip of controller>
 
 6) Test connection with:
     - ansible -i inventory all -m ping 
