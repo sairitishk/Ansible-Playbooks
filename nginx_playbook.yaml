@@ -1,0 +1,120 @@
+## not working
+---
+- name: Install and Enable Nginx and use colour game files
+  hosts: all:!controller
+  become: yes
+  become_user: root
+  gather_facts: yes
+  vars:
+    custom_heading: "Testing using Jinja templates"
+    todays_date: "{{ ansible_facts['date_time']['date'] }}"
+    host_name: "{{ ansible_facts['hostname'] }}"
+    fqdn_name: "{{ ansible_facts['fqdn'] }}"
+    os_family: "{{ ansible_facts['distribution'] }}"
+    os_dest: "{{ ansible_facts['distribution_version'] }}"
+    ip_address: "{{ ansible_facts['eth0']['ipv4']['address'] }}"
+  pre_tasks:
+  - name: Copy script file
+    copy:
+      src: /tmp/pretask.sh
+      dest: /tmp/pretask.sh
+      owner: root
+      group: root
+      mode: 0644
+  - name: exec script
+    script: /tmp/pretask.sh
+  tasks:
+  - name: Check nginx installed
+    shell: which nginx 
+    register: nginx_installed
+    ignore_errors: yes
+
+  - name: Ensure Nginx is installed
+    when: nginx_installed.rc != 0
+    apt:
+      name: nginx
+      state: latest
+      update_cache: yes
+
+  - name: Update packages
+    apt:
+      name: "{{item}}"
+      state: latest
+    with_items:
+    - jq
+    - net-tools
+    - unzip
+
+  - name: Ensure Nginx is enabled and started
+    systemd:
+      name: nginx
+      enabled: yes
+      state: started
+
+  - name: Download code from github
+    shell: cd /tmp && git clone https://github.com/sairitishk/Colour-Game-Files.git code
+    ignore_errors: yes
+
+  - name: Remove old index file
+    shell: sudo rm /var/www/html/index.nginx-debian.html
+    ignore_errors: yes
+
+  - name: Fetch index template
+    fetch:
+      src: /tmp/code/index.j2
+      dest: /tmp/index.j2
+      flat: yes
+
+  - name: replace template index file
+    template: 
+      src: /tmp/index.j2
+      dest: /var/www/html/index.nginx-debian.html
+      owner: root
+      group: root
+      mode: 0644
+
+  # - name: move html file
+  #   copy: 
+  #     src: /tmp/code/index.html
+  #     dest: /var/www/html/index.ngnix-debian.html
+  #     remote_src: yes
+  #     owner: root
+  #     group: root
+  #     mode: 0644
+
+  - name: move css file
+    copy: 
+      src: /tmp/code/styles.css
+      dest: /var/www/html/styles.css
+      remote_src: yes
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: move js file
+    copy: 
+      src: /tmp/code/scorekeeper.js
+      dest: /var/www/html/scorekeeper.js
+      remote_src: yes
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Restart nginx
+    systemd: 
+      name: nginx
+      state: restarted
+  
+  - name: Delete git repo
+    shell: rm -rf /tmp/code
+  post_tasks:
+  - name: Copy script file
+    copy:
+      src: /tmp/posttask.sh
+      dest: /tmp/posttask.sh
+      owner: root
+      group: root
+      mode: 0644
+  - name: exec script
+    script: /tmp/posttask.sh
+

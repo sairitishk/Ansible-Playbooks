@@ -1,0 +1,37 @@
+---
+- name: testing remote src
+  hosts: all:!controller
+  gather_facts: yes
+  become: yes
+  become_user: root
+  vars:
+    tfversion: '1.9.4'
+  pre_tasks:
+  - name: copy file from controller to client
+    copy:
+      src: /tmp/pretask.sh
+      dest: /tmp/pretask.sh
+      group: root
+      owner: root
+      mode: 0777
+  - name: exec the script
+    shell: bash /tmp/pretask.sh
+    register: preten
+  - debug:
+      msg: "{{preten.stdout}}"
+  tasks:
+  - name: download TF
+    get_url:
+      url: https://releases.hashicorp.com/terraform/{{tfversion}}/terraform_{{tfversion}}_linux_amd64.zip
+      dest: /tmp/terraform_{{tfversion}}_linux_amd64.zip
+      mode: 0777
+  - name: unzip tf
+    unarchive:
+      src: /tmp/terraform_{{tfversion}}_linux_amd64.zip
+      dest: /usr/local/bin
+      remote_src: yes
+  
+  post_tasks:
+  - name: exec the script
+    shell: bash /tmp/posttask.sh
+    delegate_to: 127.0.0.1

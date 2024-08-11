@@ -1,0 +1,38 @@
+---
+
+- name: play to test collections
+  hosts: allclients
+  gather_facts: yes
+  become: yes
+  become_user: root
+  roles:
+  - geerlingguy.mysql
+  collections:
+  - community.mysql
+
+  tasks:
+  - name: create a new db with name KSR
+    community.mysql.mysql_db:
+      name: KSR
+      state: present
+      login_user: root
+      login_password: "{{mysql_root_password}}"
+  - name: show dbs
+    shell: mysql -e 'SHOW DATABASES'
+    register: dblist
+  - debug:
+      var: dblist.stdout
+  - name: Copy sql file to servers
+    copy: >
+      src=ksrdb.sql
+      dest=/tmp/
+      owner=root
+      group=root
+      mode=0644
+  - name: import file from client /tmp to KSR db
+    shell: shell -u root KSR < /tmp/ksrdb.sql
+  - name: create db user with name as hippie and pass as  hipper
+    community.mysql.mysql_user:
+      name: hippie
+      password: hipper
+      priv: '*.*:ALL'
